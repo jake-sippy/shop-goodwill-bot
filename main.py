@@ -10,19 +10,20 @@ import pytz
 from unidecode import unidecode
 from bs4 import BeautifulSoup
 from datetime import datetime
-from datetime import timedelta 
+from datetime import timedelta
 from email.mime.text import MIMEText
 import email.utils
 
 SGW_TIMEZONE = pytz.timezone('America/Los_Angeles')
-INTERVAL = timedelta(minutes=20)      # frequency of polling
-NOTIFY_BOUND= [INTERVAL, INTERVAL*2]  # tweet when remaining time within bounds
-EMAIL = os.environ['SENDMAIL_USERNAME']
-PASSWORD = os.environ['SENDMAIL_PASSWORD']
+INTERVAL     = timedelta(minutes=20)                 # frequency of polling
+NOTIFY_BOUND = [INTERVAL, INTERVAL*2]                # notify when time within bounds
+EMAIL        = None
+PASSWORD     = None
 
 PRODUCTS = {
     "gamecube controller" : 20,
-    "thinkpad" : 20
+    "thinkpad" : 20,
+    "minolta" : 30,
 }
 
 def main():
@@ -31,12 +32,12 @@ def main():
 
 def get_results(term, lim):
     print('Looking for {}...'.format(term))
-    url = ('https://www.shopgoodwill.com/Listings?st={}'.format(urllib.quote(term)) +
+    url = ('https://www.shopgoodwill.com/Listings?st={}'.format(urllib.parse.quote(term)) +
            '&sg=&c=&s=&lp=0&hp=999999&sbn=false&spo=false&snpo=f' +
            'alse&socs=false&sd=false&sca=false&caed=11/14/2018&c' +
            'adb=7&scs=false&sis=false&col=0&p=1&ps=40&desc=false' +
            '&ss=0&UseBuyerPrefs=true')
-    
+
     res = requests.get(url)
     soup = BeautifulSoup(res.text, 'html.parser')
     products = soup.find_all('span', {'class' : 'data-container'})
@@ -62,8 +63,8 @@ def print_listing(price, listing, durr, lim):
     print('{: >10} | {: >22} | {: >20}'.format(price, durr, listing))
 
 def send_email(price, listing, url, durr):
-    server = smtplib.SMTP_SSL('smtp.gmail.com', 465) 
-    server.ehlo()  
+    server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+    server.ehlo()
     server.login(EMAIL,PASSWORD)
 
     msg = MIMEText(url + '\n' + str(durr) + 'remaining')
